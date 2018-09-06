@@ -4,3 +4,4 @@
 *.pyo/
 .pydevproject
 /.settings
+config.json
