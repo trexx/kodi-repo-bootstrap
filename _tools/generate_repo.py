@@ -12,11 +12,9 @@
 """
 
 from argparse import ArgumentParser
-import datetime
 import hashlib
 import json
 import os
-from pathlib import Path
 import shutil
 import sys
 from urllib.parse import urlparse
@@ -26,6 +24,7 @@ import zipfile
 
 # global variables
 CONFIG_FILE = 'config.json'
+TEMPLATE_FILE = 'template.xml'
 
 # Load the configuration:
 tools_path = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
@@ -40,32 +39,24 @@ class Generator:
 
     def __init__(self, config):
         self.config = config
-
-        # travel path one up
-        os.chdir(os.path.abspath(os.path.join(tools_path, os.pardir)))
+        
+        # the path of the addon repository
+        self.repo_path = os.path.join(self.config.out_dir, self.config.addon_id)
+        # create the path
+        if not os.path.exists(self.repo_path):
+            os.makedirs(self.repo_path)
 
         # generate files
-        self._pre_run()
-        self._generate_repo_files()
-        self._generate_addons_file()
-        self._generate_md5_file()
-        self._generate_zip_files()
+        self._write_repo_addon_xml()
+        self._generate_repo_addons_file()
+        self._generate_repo_addons_md5_file()
+        self._generate_addon_zip_files()
 
-    def _pre_run(self):
+    def _write_repo_addon_xml(self):
+        print("Create repository addon.xml")
 
-        # create output  path if it does not exists
-        if not os.path.exists(self.config.out_dir):
-            os.makedirs(self.config.out_dir)
-
-    def _generate_repo_files(self):
-
-        if os.path.isfile(self.config.addon_id + os.path.sep + "addon.xml"):
-            return
-
-        print("Create repository addon")
-
-        with open(tools_path + os.path.sep + "template.xml", "r") as template:
-            template_xml = template.read()
+        with open(TEMPLATE_FILE, "r") as f:
+            template_xml = f.read()
 
         repo_xml = template_xml.format(
             addonid=self.config.addon_id,
@@ -74,82 +65,93 @@ class Generator:
             author=self.config.author,
             summary=self.config.summary,
             description=self.config.description,
-            url=self.config.url,
-            output_path=self.config.out_dir)
+            url=self.config.url)
 
         # save file
-        if not os.path.exists(self.config.addon_id):
-            os.makedirs(self.config.addon_id)
+        self._save_file(repo_xml, file=os.path.join(self.repo_path, "addon.xml"))
 
-        self._save_file(repo_xml.encode("utf-8"), file=self.config.addon_id + os.path.sep + "addon.xml")
-
-    def _generate_zip_files(self):
-        addons = os.listdir(".")
+    def _generate_addon_zip_files(self):
+        # addon list
+        addon_folders = os.listdir(self.config.in_dir)
+        
         # loop thru and add each addons addon.xml file
-        for addon in addons:
+        for addon_folder in addon_folders:
             # create path
-            _path = os.path.join(addon, "addon.xml")
+            addon_xml_path = os.path.join(self.config.in_dir, addon_folder, "addon.xml")
             # skip path if it has no addon.xml
-            if not os.path.isfile(_path):
+            if not os.path.isfile(addon_xml_path):
                 continue
             try:
-                # skip any file or .git folder
-                if not (os.path.isdir(addon) or addon == ".idea" or addon == ".git" or addon == ".svn" or addon == self.config.out_dir or addon == tools_path):
-                    continue
-                # create path
-                _path = os.path.join(addon, "addon.xml")
-                # split lines for stripping
-                document = minidom.parse(_path)
-                for parent in document.getElementsByTagName("addon"):
+                # extract version and addon ID from the addon.xml
+                addon_xml = minidom.parse(addon_xml_path)
+                for parent in addon_xml.getElementsByTagName("addon"):
                     version = parent.getAttribute("version")
                     addonid = parent.getAttribute("id")
-                self._generate_zip_file(addon, version, addonid)
+                
+                # zip the addon
+                self._generate_zip_file(addon_folder, version, addonid)
             except Exception as e:
                 print(e)
 
-    def _generate_zip_file(self, path, version, addonid):
-        print("Generate zip file for " + addonid + " " + version)
-        filename = path + "-" + version + ".zip"
+    def _generate_zip_file(self, folder_name, version, addon_id):
+        print("Generate zip file for " + addon_id + " " + version)
+        
+        # create output addon directory
+        addon_out_path = os.path.join(self.repo_path, addon_id)
+        if not os.path.exists(addon_out_path):
+            os.makedirs(addon_out_path)
+        
+        # the path of the zip file
+        zip_file = os.path.join(addon_out_path, addon_id + "-" + version + ".zip")
+        
         try:
-            zip = zipfile.ZipFile(filename, 'w', compression=zipfile.ZIP_DEFLATED)
-            for root, dirs, files in os.walk(path + os.path.sep):
-                if '.idea' in dirs:
-                    dirs.remove('.idea')
+            # the root path of the addon
+            root = os.path.join(self.config.in_dir, folder_name)
+            
+            # create the zip file
+            zip_content = zipfile.ZipFile(zip_file, 'w', compression=zipfile.ZIP_DEFLATED)
+            # fill it
+            for current_root, dirs, files in os.walk(root):
+                # ignore .svn and .git directories
+                if '.svn' in dirs:
+                    dirs.remove('.svn')
                 if '.git' in dirs:
                     dirs.remove('.git')
-                zip.write(os.path.join(root))
+                
+                # write the current root folder
+                rel_path = os.path.join(addon_id, os.path.relpath(os.path.join(current_root), os.path.join(root)))
+                zip_content.write(os.path.join(current_root), rel_path)
+                
+                # write the files in the current root folder
                 for file in files:
-                    zip.write(os.path.join(root, file))
+                    # ignore dotfiles
+                    if not file.startswith('.'):
+                        rel_path = os.path.join(addon_id, os.path.relpath(os.path.join(current_root, file), os.path.join(root)))
+                        zip_content.write(os.path.join(current_root, file), rel_path)
 
-            zip.close()
-
-            if not os.path.exists(self.config.out_dir + addonid):
-                os.makedirs(self.config.out_dir + addonid)
-
-            if os.path.isfile(self.config.out_dir + addonid + os.path.sep + filename):
-                # pass #uncomment to overwrite existing zip file, then comment or remove the next two lines below
-                os.rename(self.config.out_dir + addonid + os.path.sep + filename,
-                    self.config.out_dir + addonid + os.path.sep + filename + "." + datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-            shutil.move(filename, self.config.out_dir + addonid + os.path.sep + filename)
+            zip_content.close()
         except Exception as e:
             print(e)
 
-    def _generate_addons_file(self):
+    def _generate_repo_addons_file(self):
         print("Generating addons.xml file")
+        
         # addon list
-        addons = os.listdir(".")
-        # final addons text
-        addons_xml = u"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<addons>\n"
+        addon_folders = os.listdir(self.config.in_dir)
+        
+        # addons.xml opening tags
+        addons_xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<addons>\n"
+        
         # loop thru and add each addons addon.xml file
-        for addon in addons:
+        for addon_folder in addon_folders:
             # create path
-            _path = os.path.join(addon, "addon.xml")
+            addon_xml_path = os.path.join(self.config.in_dir, addon_folder, "addon.xml")
             # skip path if it has no addon.xml
-            if not os.path.isfile(_path):
+            if not os.path.isfile(addon_xml_path):
                 continue
             try:
                 # split lines for stripping
-                xml_lines = open(_path, "r").read().splitlines()
+                xml_lines = open(addon_xml_path, "r").read().splitlines()
                 # new addon
                 addon_xml = ""
                 # loop thru cleaning each line
@@ -158,24 +160,28 @@ class Generator:
                     if (line.find("<?xml") >= 0):
                         continue
                     # add line
-                    addon_xml += line.rstrip() + "\n", "utf-8"
+                    addon_xml += line.rstrip() + "\n"
                 # we succeeded so add to our final addons.xml text
                 addons_xml += addon_xml.rstrip() + "\n\n"
             except Exception as e:
                 # missing or poorly formatted addon.xml
-                print("Excluding %s for %s" % (_path, e))
+                print("Excluding %s for %s" % (addon_xml_path, e))
+        
         # clean and add closing tag
-        addons_xml = addons_xml.strip() + u"\n</addons>\n"
+        addons_xml = addons_xml.strip() + "\n</addons>\n"
+        
         # save file
-        self._save_file(addons_xml.encode("utf-8"), file=self.config.out_dir + "addons.xml")
+        self._save_file(addons_xml, file=os.path.join(self.repo_path, "addons.xml"))
 
-    def _generate_md5_file(self):
+    def _generate_repo_addons_md5_file(self):
         print("Generating addons.xml.md5 file")
+        
         try:
             # create a new md5 hash
-            m = hashlib.md5(open(self.config.out_dir + "addons.xml").read()).hexdigest()
+            m = hashlib.md5(open(os.path.join(self.repo_path, "addons.xml"), 'r').read().encode('utf-8')).hexdigest()
+            
             # save file
-            self._save_file(m, file=self.config.out_dir + "addons.xml.md5")
+            self._save_file(m, file=os.path.join(self.repo_path, "addons.xml.md5"))
         except Exception as e:
             # oops
             print("An error occurred creating addons.xml.md5 file!\n%s" % e)
@@ -308,15 +314,11 @@ class Config:
         if not config['in_dir']:
             missing_args.append("--input-dir")
         else:
-            config['in_dir'] = Path(config['in_dir'])
-            if not config['in_dir'].is_dir():
+            if not os.path.isdir(config['in_dir']):
                 wrong_args.append("--input-dir: a valid directory must be provided")
         if not config['out_dir']:
             missing_args.append("--output-dir")
-        else:
-            config['out_dir'] = Path(config['out_dir'])
-            if not config['out_dir'].is_dir():
-                wrong_args.append("--output-dir: a valid directory must be provided")
+        # if the output directory does not exist, it will be created later
         
         if missing_args:
             print('the following arguments are required:\n\t%s' %
