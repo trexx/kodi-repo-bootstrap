@@ -12,9 +12,11 @@
 """
 
 from argparse import ArgumentParser
+import fnmatch
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 from urllib.parse import urlparse
@@ -40,11 +42,9 @@ class Generator:
     def __init__(self, config):
         self.config = config
         
-        # the path of the addon repository
-        self.repo_path = os.path.join(self.config.out_dir, self.config.addon_id)
-        # create the path
-        if not os.path.exists(self.repo_path):
-            os.makedirs(self.repo_path)
+        # create the addon repository path
+        if not os.path.exists(self.config.repo_path):
+            os.makedirs(self.config.repo_path)
 
         # generate files
         self._write_repo_addon_xml()
@@ -68,7 +68,7 @@ class Generator:
             url=self.config.url)
 
         # save file
-        self._save_file(repo_xml, file=os.path.join(self.repo_path, "addon.xml"))
+        self._save_file(repo_xml, file=os.path.join(self.config.repo_path, "addon.xml"))
 
     def _generate_addon_zip_files(self):
         # addon list
@@ -97,7 +97,7 @@ class Generator:
         print("Generate zip file for " + addon_id + " " + version)
         
         # create output addon directory
-        addon_out_path = os.path.join(self.repo_path, addon_id)
+        addon_out_path = os.path.join(self.config.repo_path, addon_id)
         if not os.path.exists(addon_out_path):
             os.makedirs(addon_out_path)
         
@@ -171,17 +171,17 @@ class Generator:
         addons_xml = addons_xml.strip() + "\n</addons>\n"
         
         # save file
-        self._save_file(addons_xml, file=os.path.join(self.repo_path, "addons.xml"))
+        self._save_file(addons_xml, file=os.path.join(self.config.repo_path, "addons.xml"))
 
     def _generate_repo_addons_md5_file(self):
         print("Generating addons.xml.md5 file")
         
         try:
             # create a new md5 hash
-            m = hashlib.md5(open(os.path.join(self.repo_path, "addons.xml"), 'r').read().encode('utf-8')).hexdigest()
+            m = hashlib.md5(open(os.path.join(self.config.repo_path, "addons.xml"), 'r').read().encode('utf-8')).hexdigest()
             
             # save file
-            self._save_file(m, file=os.path.join(self.repo_path, "addons.xml.md5"))
+            self._save_file(m, file=os.path.join(self.config.repo_path, "addons.xml.md5"))
         except Exception as e:
             # oops
             print("An error occurred creating addons.xml.md5 file!\n%s" % e)
@@ -201,38 +201,44 @@ class Copier:
         self._copy_additional_files()
 
     def _copy_additional_files(self):
-        os.chdir(os.path.abspath(os.path.join(tools_path, os.pardir)))
-        addons = os.listdir(".")
-        for addon in addons:
-            xml_file = os.path.join(addon, "addon.xml")
-            if not os.path.isfile(xml_file):
+        #os.chdir(os.path.abspath(os.path.join(tools_path, os.pardir)))
+        # iterate over the addons
+        addon_folders = os.listdir(self.config.in_dir)
+        for addon_folder in addon_folders:
+            addon_folder = os.path.join(self.config.in_dir, addon_folder)
+            addon_xml_path = os.path.join(addon_folder, "addon.xml")
+            if not os.path.isfile(addon_xml_path):
                 continue
-            if not (os.path.isdir(addon) or addon == ".idea" or addon == ".git" or addon == ".svn" or addon == self.config.out_dir or addon == tools_path):
-                continue
-            document = minidom.parse(xml_file)
-            for parent in document.getElementsByTagName("addon"):
-                version = parent.getAttribute("version")
+            addon_xml = minidom.parse(addon_xml_path)
+            for parent in addon_xml.getElementsByTagName("addon"):
+                addon_id = parent.getAttribute("id")
+                addon_out_path = os.path.join(self.config.out_dir, self.config.repo_path, addon_id)
+                addon_out_path = os.path.join(addon_out_path, '')
+                
                 try:
-                    if os.path.isfile(self.config.out_dir + addon + os.path.sep + "changelog-" + version + ".txt"):
-                        pass
-                    else:
-                        shutil.copy(addon + os.path.sep + "changelog.txt", self.config.out_dir + addon + os.path.sep + "changelog-" + version + ".txt")
+                    # copy addon.xml
+                    shutil.copy2(addon_xml_path, addon_out_path)
+                    
+                    # copy changelog.txt
+                    changelog_txt_path = self._find_files("changelog*.txt", addon_folder)
+                    for changelog in changelog_txt_path:
+                        shutil.copy2(os.path.join(addon_folder, changelog), addon_out_path)
+                    
+                    # copy icon.png
+                    icon_png_path = self._find_files("icon*.png", addon_folder)
+                    for icon in icon_png_path:
+                        shutil.copy2(os.path.join(addon_folder, icon), addon_out_path)
+                    
+                    # copy fanart.jpg
+                    fanart_jpg_path = self._find_files("fanart*.jpg", addon_folder)
+                    for fanart in fanart_jpg_path:
+                        shutil.copy2(os.path.join(addon_folder, fanart), addon_out_path)
                 except IOError:
                     pass
-                try:
-                    if os.path.isfile(self.config.out_dir + addon + os.path.sep + "icon.png"):
-                        pass
-                    else:
-                        shutil.copy(addon + os.path.sep + "icon.png", self.config.out_dir + addon + os.path.sep + "icon.png")
-                except IOError:
-                    pass
-                try:
-                    if os.path.isfile(self.config.out_dir + addon + os.path.sep + "fanart.jpg"):
-                        pass
-                    else:
-                        shutil.copy(addon + os.path.sep + "fanart.jpg", self.config.out_dir + addon + os.path.sep + "fanart.jpg")
-                except IOError:
-                    pass
+    
+    def _find_files(self, which, where='.'):
+        rule = re.compile(fnmatch.translate(which), re.IGNORECASE)
+        return [name for name in os.listdir(where) if rule.match(name)]
 
 class Config:
     def __init__(self):
@@ -253,6 +259,9 @@ class Config:
         # add the config attributes to this instance
         for key, value in config.items():
             setattr(self, key, value)
+        
+        # the path of the addon repository
+        self.repo_path = os.path.join(self.out_dir, self.addon_id)
         
         # save the config to file
         self._write_config_file(config, CONFIG_FILE)
