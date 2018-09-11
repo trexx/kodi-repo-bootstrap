@@ -35,8 +35,7 @@ tools_path = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__fil
 class Generator:
     """
         Generates a new addons.xml file from each addons addon.xml file
-        and a new addons.xml.md5 hash file. Must be run from a subdirectory (eg. _tools) of
-        the checked-out repo. Only handles single depth folder structure.
+        and a new addons.xml.md5 hash file. Only handles single depth folder structure.
     """
 
     def __init__(self, config):
