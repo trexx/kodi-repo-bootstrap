@@ -45,9 +45,13 @@ class Generator:
         # create the addon repository path
         if not os.path.exists(self.config.repo_path):
             os.makedirs(self.config.repo_path)
+        
+        # the repository xml file
+        self.repo_xml_file = os.path.join(self.config.repo_path, "addon.xml")
 
         # generate files
         self._write_repo_addon_xml()
+        self._generate_repo_zip_file()
         self._generate_repo_addons_file()
         self._generate_repo_addons_md5_file()
         self._generate_addon_zip_files()
@@ -68,7 +72,7 @@ class Generator:
             url=self.config.url)
 
         # save file
-        self._save_file(repo_xml, file=os.path.join(self.config.repo_path, "addon.xml"))
+        self._save_file(repo_xml, file=self.repo_xml_file)
 
     def _generate_addon_zip_files(self):
         # addon list
@@ -129,6 +133,24 @@ class Generator:
                         rel_path = os.path.join(addon_id, os.path.relpath(os.path.join(current_root, file), os.path.join(root)))
                         zip_content.write(os.path.join(current_root, file), rel_path)
 
+            zip_content.close()
+        except Exception as e:
+            print(e)
+    
+    def _generate_repo_zip_file(self):
+        print("Generate zip file for " + self.config.addon_id + " " + self.config.version)
+        
+        # the path of the zip file
+        zip_file = os.path.join(self.config.repo_path, self.config.addon_id + "-" + self.config.version + ".zip")
+        
+        try:
+            # create the zip file
+            zip_content = zipfile.ZipFile(zip_file, 'w', compression=zipfile.ZIP_DEFLATED)
+            # write the root folder
+            zip_content.write(os.path.join(self.config.repo_path), self.config.addon_id)
+            # add the addon.xml
+            zip_content.write(self.repo_xml_file, os.path.join(self.config.addon_id, os.path.basename(self.repo_xml_file)))
+            
             zip_content.close()
         except Exception as e:
             print(e)
