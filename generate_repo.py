@@ -272,7 +272,7 @@ class Config:
         # merge config file and cli arguments
         args = parser.parse_args()
         argparse_dict = vars(args)
-        config.update(argparse_dict)
+        config.update({k:v for k,v in argparse_dict.items() if v})
         
         # check the config parameter
         self._validate_config(config)
