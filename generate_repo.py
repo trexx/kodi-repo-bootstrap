@@ -41,12 +41,12 @@ class Generator:
     def __init__(self, config):
         self.config = config
         
-        # create the addon repository path
-        if not os.path.exists(self.config.repo_path):
-            os.makedirs(self.config.repo_path)
+        # create the output path
+        if not os.path.exists(self.config.out_dir):
+            os.makedirs(self.config.out_dir)
         
         # the repository xml file
-        self.repo_xml_file = os.path.join(self.config.repo_path, "addon.xml")
+        self.repo_xml_file = os.path.join(self.config.out_dir, "addon.xml")
 
         # generate files
         self._write_repo_addon_xml()
@@ -100,7 +100,7 @@ class Generator:
         print("Generate zip file for " + addon_id + " " + version)
         
         # create output addon directory
-        addon_out_path = os.path.join(self.config.repo_path, addon_id)
+        addon_out_path = os.path.join(self.config.out_dir, addon_id)
         if not os.path.exists(addon_out_path):
             os.makedirs(addon_out_path)
         
@@ -140,13 +140,13 @@ class Generator:
         print("Generate zip file for " + self.config.addon_id + " " + self.config.version)
         
         # the path of the zip file
-        zip_file = os.path.join(self.config.repo_path, self.config.addon_id + "-" + self.config.version + ".zip")
+        zip_file = os.path.join(self.config.out_dir, self.config.addon_id + "-" + self.config.version + ".zip")
         
         try:
             # create the zip file
             zip_content = zipfile.ZipFile(zip_file, 'w', compression=zipfile.ZIP_DEFLATED)
             # write the root folder
-            zip_content.write(os.path.join(self.config.repo_path), self.config.addon_id)
+            zip_content.write(os.path.join(self.config.out_dir), self.config.addon_id)
             # add the addon.xml
             zip_content.write(self.repo_xml_file, os.path.join(self.config.addon_id, os.path.basename(self.repo_xml_file)))
             
@@ -192,17 +192,17 @@ class Generator:
         addons_xml = addons_xml.strip() + "\n</addons>\n"
         
         # save file
-        self._save_file(addons_xml, file=os.path.join(self.config.repo_path, "addons.xml"))
+        self._save_file(addons_xml, file=os.path.join(self.config.out_dir, "addons.xml"))
 
     def _generate_repo_addons_md5_file(self):
         print("Generating addons.xml.md5 file")
         
         try:
             # create a new md5 hash
-            m = hashlib.md5(open(os.path.join(self.config.repo_path, "addons.xml"), 'r').read().encode('utf-8')).hexdigest()
+            m = hashlib.md5(open(os.path.join(self.config.out_dir, "addons.xml"), 'r').read().encode('utf-8')).hexdigest()
             
             # save file
-            self._save_file(m, file=os.path.join(self.config.repo_path, "addons.xml.md5"))
+            self._save_file(m, file=os.path.join(self.config.out_dir, "addons.xml.md5"))
         except Exception as e:
             # oops
             print("An error occurred creating addons.xml.md5 file!\n%s" % e)
@@ -233,7 +233,7 @@ class Copier:
             addon_xml = minidom.parse(addon_xml_path)
             for parent in addon_xml.getElementsByTagName("addon"):
                 addon_id = parent.getAttribute("id")
-                addon_out_path = os.path.join(self.config.out_dir, self.config.repo_path, addon_id)
+                addon_out_path = os.path.join(self.config.out_dir, addon_id)
                 addon_out_path = os.path.join(addon_out_path, '')
                 
                 try:
@@ -280,9 +280,6 @@ class Config:
         # add the config attributes to this instance
         for key, value in config.items():
             setattr(self, key, value)
-        
-        # the path of the addon repository
-        self.repo_path = os.path.join(self.out_dir, self.addon_id)
         
         # save the config to file
         self._write_config_file(config, CONFIG_FILE)
