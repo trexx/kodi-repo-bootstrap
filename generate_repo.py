@@ -45,12 +45,13 @@ class Generator:
         if not os.path.exists(self.config.out_dir):
             os.makedirs(self.config.out_dir)
         
-        # the repository xml file
-        self.repo_xml_file = os.path.join(self.config.out_dir, "addon.xml")
+        # create repository addon path
+        self.repo_addon_path = os.path.join(self.config.out_dir, self.config.addon_id)
+        if not os.path.exists(self.repo_addon_path):
+            os.makedirs(self.repo_addon_path)
 
         # generate files
         self._write_repo_addon_xml()
-        self._generate_repo_zip_file()
         self._generate_repo_addons_file()
         self._generate_repo_addons_md5_file()
         self._generate_addon_zip_files()
@@ -71,16 +72,18 @@ class Generator:
             url=self.config.url)
 
         # save file
-        self._save_file(repo_xml, file=self.repo_xml_file)
+        self._save_file(repo_xml, file=os.path.join(self.repo_addon_path, "addon.xml"))
 
     def _generate_addon_zip_files(self):
         # addon list
-        addon_folders = os.listdir(self.config.in_dir)
+        addon_folders = self._listdir_full(self.config.in_dir)
+        # add the repo addon
+        addon_folders.append(self.repo_addon_path)
         
         # loop thru and add each addons addon.xml file
         for addon_folder in addon_folders:
             # create path
-            addon_xml_path = os.path.join(self.config.in_dir, addon_folder, "addon.xml")
+            addon_xml_path = os.path.join(addon_folder, "addon.xml")
             # skip path if it has no addon.xml
             if not os.path.isfile(addon_xml_path):
                 continue
@@ -128,28 +131,11 @@ class Generator:
                 # write the files in the current root folder
                 for file in files:
                     # ignore dotfiles
-                    if not file.startswith('.'):
+                    if not file.startswith('.') and \
+                            file != os.path.basename(zip_file):
                         rel_path = os.path.join(addon_id, os.path.relpath(os.path.join(current_root, file), os.path.join(root)))
                         zip_content.write(os.path.join(current_root, file), rel_path)
 
-            zip_content.close()
-        except Exception as e:
-            print(e)
-    
-    def _generate_repo_zip_file(self):
-        print("Generate zip file for " + self.config.addon_id + " " + self.config.version)
-        
-        # the path of the zip file
-        zip_file = os.path.join(self.config.out_dir, self.config.addon_id + "-" + self.config.version + ".zip")
-        
-        try:
-            # create the zip file
-            zip_content = zipfile.ZipFile(zip_file, 'w', compression=zipfile.ZIP_DEFLATED)
-            # write the root folder
-            zip_content.write(os.path.join(self.config.out_dir), self.config.addon_id)
-            # add the addon.xml
-            zip_content.write(self.repo_xml_file, os.path.join(self.config.addon_id, os.path.basename(self.repo_xml_file)))
-            
             zip_content.close()
         except Exception as e:
             print(e)
@@ -158,7 +144,9 @@ class Generator:
         print("Generating addons.xml file")
         
         # addon list
-        addon_folders = os.listdir(self.config.in_dir)
+        addon_folders = self._listdir_full(self.config.in_dir)
+        # add the repo addon
+        addon_folders.append(self.repo_addon_path)
         
         # addons.xml opening tags
         addons_xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<addons>\n"
@@ -166,7 +154,7 @@ class Generator:
         # loop thru and add each addons addon.xml file
         for addon_folder in addon_folders:
             # create path
-            addon_xml_path = os.path.join(self.config.in_dir, addon_folder, "addon.xml")
+            addon_xml_path = os.path.join(addon_folder, "addon.xml")
             # skip path if it has no addon.xml
             if not os.path.isfile(addon_xml_path):
                 continue
@@ -214,6 +202,9 @@ class Generator:
         except Exception as e:
             # oops
             print("An error occurred saving %s file!\n%s" % (file, e))
+    
+    def _listdir_full(self, directory):
+        return [os.path.join(directory, f) for f in os.listdir(directory)]
 
 
 class Copier:
