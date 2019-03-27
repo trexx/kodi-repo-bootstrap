@@ -25,11 +25,9 @@ import zipfile
 
 
 # global variables
-CONFIG_FILE = 'config.json'
-TEMPLATE_FILE = 'template.xml'
-
-# Load the configuration:
-tools_path = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
+__PROGRAM_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
+CONFIG_FILE = os.path.join(__PROGRAM_DIR, 'config.json')
+TEMPLATE_FILE = os.path.join(__PROGRAM_DIR, 'template.xml')
 
 
 class Generator:
@@ -213,7 +211,6 @@ class Copier:
         self._copy_additional_files()
 
     def _copy_additional_files(self):
-        #os.chdir(os.path.abspath(os.path.join(tools_path, os.pardir)))
         # iterate over the addons
         addon_folders = os.listdir(self.config.in_dir)
         for addon_folder in addon_folders:
