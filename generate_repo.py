@@ -323,8 +323,7 @@ class Config:
             # check for a valid URL
             parsed_url = urlparse(config['url'])
             if not parsed_url.scheme or \
-                    not parsed_url.netloc or \
-                    not parsed_url.path:
+                    not parsed_url.netloc:
                 wrong_args.append("--url: a valid URL must be provided")
         if not config['in_dir']:
             missing_args.append("--input-dir")
