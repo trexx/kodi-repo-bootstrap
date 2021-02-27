@@ -38,11 +38,11 @@ class Generator:
 
     def __init__(self, config):
         self.config = config
-        
+
         # create the output path
         if not os.path.exists(self.config.out_dir):
             os.makedirs(self.config.out_dir)
-        
+
         # create repository addon path
         self.repo_addon_path = os.path.join(self.config.out_dir, self.config.addon_id)
         if not os.path.exists(self.repo_addon_path):
@@ -77,7 +77,7 @@ class Generator:
         addon_folders = self._listdir_full(self.config.in_dir)
         # add the repo addon
         addon_folders.append(self.repo_addon_path)
-        
+
         # loop thru and add each addons addon.xml file
         for addon_folder in addon_folders:
             # create path
@@ -91,7 +91,7 @@ class Generator:
                 for parent in addon_xml.getElementsByTagName("addon"):
                     version = parent.getAttribute("version")
                     addonid = parent.getAttribute("id")
-                
+
                 # zip the addon
                 self._generate_zip_file(addon_folder, version, addonid)
             except Exception as e:
@@ -99,19 +99,19 @@ class Generator:
 
     def _generate_zip_file(self, folder_name, version, addon_id):
         print("Generate zip file for " + addon_id + " " + version)
-        
+
         # create output addon directory
         addon_out_path = os.path.join(self.config.out_dir, addon_id)
         if not os.path.exists(addon_out_path):
             os.makedirs(addon_out_path)
-        
+
         # the path of the zip file
         zip_file = os.path.join(addon_out_path, addon_id + "-" + version + ".zip")
-        
+
         try:
             # the root path of the addon
             root = os.path.join(self.config.in_dir, folder_name)
-            
+
             # create the zip file
             zip_content = zipfile.ZipFile(zip_file, 'w', compression=zipfile.ZIP_DEFLATED)
             # fill it
@@ -121,17 +121,19 @@ class Generator:
                     dirs.remove('.svn')
                 if '.git' in dirs:
                     dirs.remove('.git')
-                
+
                 # write the current root folder
                 rel_path = os.path.join(addon_id, os.path.relpath(os.path.join(current_root), os.path.join(root)))
                 zip_content.write(os.path.join(current_root), rel_path)
-                
+
                 # write the files in the current root folder
                 for file in files:
                     # ignore dotfiles
                     if not file.startswith('.') and \
                             file != os.path.basename(zip_file):
-                        rel_path = os.path.join(addon_id, os.path.relpath(os.path.join(current_root, file), os.path.join(root)))
+                        rel_path = os.path.join(addon_id,
+                                                os.path.relpath(os.path.join(current_root, file),
+                                                                os.path.join(root)))
                         zip_content.write(os.path.join(current_root, file), rel_path)
 
             zip_content.close()
@@ -140,16 +142,16 @@ class Generator:
 
     def _generate_repo_addons_file(self):
         print("Generating addons.xml file")
-        
+
         # addon list
         addon_folders = self._listdir_full(self.config.in_dir)
         # add the repo addon
         addon_folders.append(self.repo_addon_path)
-        
+
         # addons.xml opening tags
         addons_xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<addons>\n"
-        
-        # loop thru and add each addons addon.xml file
+
+        # loop through the addon directory and add each addons addon.xml file
         for addon_folder in addon_folders:
             # create path
             addon_xml_path = os.path.join(addon_folder, "addon.xml")
@@ -173,20 +175,21 @@ class Generator:
             except Exception as e:
                 # missing or poorly formatted addon.xml
                 print("Excluding %s for %s" % (addon_xml_path, e))
-        
+
         # clean and add closing tag
         addons_xml = addons_xml.strip() + "\n</addons>\n"
-        
+
         # save file
         self._save_file(addons_xml, file=os.path.join(self.config.out_dir, "addons.xml"))
 
     def _generate_repo_addons_md5_file(self):
         print("Generating addons.xml.md5 file")
-        
+
         try:
             # create a new md5 hash
-            m = hashlib.md5(open(os.path.join(self.config.out_dir, "addons.xml"), 'r').read().encode('utf-8')).hexdigest()
-            
+            with open(os.path.join(self.config.out_dir, "addons.xml"), 'r') as f:
+                m = hashlib.md5(f.read().encode('utf-8')).hexdigest()
+
             # save file
             self._save_file(m, file=os.path.join(self.config.out_dir, "addons.xml.md5"))
         except Exception as e:
@@ -200,7 +203,7 @@ class Generator:
         except Exception as e:
             # oops
             print("An error occurred saving %s file!\n%s" % (file, e))
-    
+
     def _listdir_full(self, directory):
         return [os.path.join(directory, f) for f in os.listdir(directory)]
 
@@ -223,78 +226,81 @@ class Copier:
                 addon_id = parent.getAttribute("id")
                 addon_out_path = os.path.join(self.config.out_dir, addon_id)
                 addon_out_path = os.path.join(addon_out_path, '')
-                
+
                 try:
                     # copy addon.xml
                     shutil.copy2(addon_xml_path, addon_out_path)
-                    
+
                     # copy changelog.txt
                     changelog_txt_path = self._find_files("changelog*.txt", addon_folder)
                     for changelog in changelog_txt_path:
                         shutil.copy2(os.path.join(addon_folder, changelog), addon_out_path)
-                    
+
                     # copy icon.png
                     icon_png_path = self._find_files("icon*.png", addon_folder)
                     for icon in icon_png_path:
                         shutil.copy2(os.path.join(addon_folder, icon), addon_out_path)
-                    
+
                     # copy fanart.jpg
                     fanart_jpg_path = self._find_files("fanart*.jpg", addon_folder)
                     for fanart in fanart_jpg_path:
                         shutil.copy2(os.path.join(addon_folder, fanart), addon_out_path)
                 except IOError:
                     pass
-    
+
     def _find_files(self, which, where='.'):
         rule = re.compile(fnmatch.translate(which), re.IGNORECASE)
         return [name for name in os.listdir(where) if rule.match(name)]
+
 
 class Config:
     def __init__(self):
         # create the cli argument parser
         parser = self._init_parser()
-        
+
         # get the settings from the config file
         config = self._read_config_file(CONFIG_FILE)
-        
+
         # merge config file and cli arguments
         args = parser.parse_args()
         argparse_dict = vars(args)
-        config.update({k:v for k,v in argparse_dict.items() if v})
-        
+        config.update({k: v for k, v in argparse_dict.items() if v})
+
         # check the config parameter
         self._validate_config(config)
-        
+
         # add the config attributes to this instance
         for key, value in config.items():
             setattr(self, key, value)
-        
+
         # save the config to file
         self._write_config_file(config, CONFIG_FILE)
-    
+
     def _init_parser(self):
         parser = ArgumentParser(description="Create a Kodi repository")
-        parser.add_argument('-n', '--name', metavar='Repository name', type=str, dest='repo_name', \
+        parser.add_argument('-n', '--name', metavar='Repository name', type=str, dest='repo_name',
                             help="The name of the repository")
-        parser.add_argument('-r', '--id', metavar='Repository addon ID', type=str, dest='addon_id', \
+        parser.add_argument('-r', '--id', metavar='Repository addon ID', type=str, dest='addon_id',
                             help="The ID of the repository addon (must start with 'repository.')")
-        parser.add_argument('-v', '--version', metavar='Version', type=str, dest='version', \
+        parser.add_argument('-v', '--version', metavar='Version', type=str, dest='version',
                             help="The version of the repository addon")
-        parser.add_argument('-a', '--author', metavar='Author', type=str, dest='author', \
+        parser.add_argument('-a', '--author', metavar='Author', type=str, dest='author',
                             help="The author of the repository")
-        parser.add_argument('-s', '--summary', metavar='Summary', type=str, dest='summary', \
+        parser.add_argument('-s', '--summary', metavar='Summary', type=str, dest='summary',
                             help="A short summary of this repository")
-        parser.add_argument('-d', '--description', metavar='Description', type=str, dest='description', \
-                            help="The description can be longer. Using [CR] you can create a newline. The use of other markup is not advised.")
-        parser.add_argument('-u', '--url', metavar='Remote repository URL', type=str, dest='url', \
-                            help="The later URL of the repository main directory, e.g. https://raw.githubusercontent.com/Your-Github-Username/repository-link/")
-        parser.add_argument('-i', '--input-dir', metavar='Input directory', type=str, dest='in_dir', \
+        parser.add_argument('-d', '--description', metavar='Description', type=str, dest='description',
+                            help=("The description can be longer. Using [CR] you can create a newline. ",
+                                  "The use of other markup is not advised."))
+        parser.add_argument('-u', '--url', metavar='Remote repository URL', type=str, dest='url',
+                            help=("The later URL of the repository main directory, e.g. ",
+                                  "https://raw.githubusercontent.com/Your-Github-Username/repository-link/"))
+        parser.add_argument('-i', '--input-dir', metavar='Input directory', type=str, dest='in_dir',
                             help="The directory containing the addons that should be added to the repository")
-        parser.add_argument('-o', '--output-dir', metavar='Output directory', type=str, dest='out_dir', \
+        parser.add_argument('-o', '--output-dir', metavar='Output directory', type=str, dest='out_dir',
                             help="The output directory of the repository")
-        
+
         return parser
-    
+
     def _validate_config(self, config):
         # check for missing and wrong settings
         missing_args = []
@@ -319,7 +325,7 @@ class Config:
             # remove trailing slash if it's there
             if config['url'].endswith('/'):
                 config['url'] = config['url'][:-1]
-            
+
             # check for a valid URL
             parsed_url = urlparse(config['url'])
             if not parsed_url.scheme or \
@@ -333,44 +339,43 @@ class Config:
         if not config['out_dir']:
             missing_args.append("--output-dir")
         # if the output directory does not exist, it will be created later
-        
+
         if missing_args:
-            print('the following arguments are required:\n\t%s' %
-                         '\n\t'.join(missing_args), file=sys.stderr)
+            print('the following arguments are required:\n\t%s' % '\n\t'.join(missing_args),
+                  file=sys.stderr)
             sys.exit(1)
         if wrong_args:
-            print('there were errors with the following arguments:\n\t%s' %
-                         '\n\t'.join(wrong_args), file=sys.stderr)
+            print('there were errors with the following arguments:\n\t%s' % '\n\t'.join(wrong_args),
+                  file=sys.stderr)
             sys.exit(1)
-    
+
     def _read_config_file(self, file_path):
         # check if a config file exists
         if not os.path.isfile(file_path):
             # create a new one if no config file exists
             with open(file_path, 'w') as f:
                 json.dump({}, f)
-        
+
         # load the config file
         with open(file_path, 'r') as f:
             try:
                 config = json.load(f)
-            except:
+            except Exception:
                 config = {}
-        
+
         # return the content of the config file as dict
         return config
-    
+
     def _write_config_file(self, config, file_path):
         # write the config to file
         with open(file_path, 'w') as f:
                 json.dump(config, f)
 
 
-
 if __name__ == "__main__":
     # load the config
     config = Config()
-    
+
     Generator(config)
     Copier(config)
     print("Finished updating addons xml & md5 files, zipping addons and copying additional files")
