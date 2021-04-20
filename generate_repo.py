@@ -13,8 +13,9 @@
 
 from argparse import ArgumentParser
 import fnmatch
+import glob
 import hashlib
-from io import IOBase
+from io import TextIOWrapper, IOBase
 import json
 import os
 import re
@@ -149,39 +150,78 @@ class Generator:
         addon_folders.append(self.repo_addon_path)
 
         # addons.xml opening tags
-        addons_xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<addons>\n"
+        addons_xml_data = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<addons>\n"
+
+        # store the content of all addon.xml files
+        addon_xml_files = {}
+
+        # get the addon.xml from previous addon versions
+        # these versions are present in the already zipped addons
+        for existing_zip_file in glob.iglob(os.path.join(self.config.out_dir, "*", "*.zip")):
+            try:
+                with zipfile.ZipFile(existing_zip_file, 'r') as zip_fp:
+                    # get the path of the compressed addon.xml file
+                    compressed_addon_xml_path = [name
+                                                 for name in zip_fp.namelist()
+                                                 if re.match(r"^[^/]+/addon\.xml$", name)][0]
+
+                    # read the addon.xml
+                    with zip_fp.open(compressed_addon_xml_path, 'r') as compressed_addon_xml_fp:
+                        # save the content of the existing addon.xml based on the addon ID and version
+                        addon_xml_content = TextIOWrapper(compressed_addon_xml_fp)
+                        addonid, version = self._get_addon_xml_tag(addon_xml_content, "id", "version")
+
+                        if addonid in addon_xml_files:
+                            addon_xml_files[addonid][version] = addon_xml_content.read().splitlines()
+                        else:
+                            addon_xml_files[addonid] = {version: addon_xml_content.read().splitlines()}
+            except Exception as e:
+                pass
 
         # loop through the addon directory and add each addons addon.xml file
         for addon_folder in addon_folders:
-            # create path
-            addon_xml_path = os.path.join(addon_folder, "addon.xml")
-            # skip path if it has no addon.xml
-            if not os.path.isfile(addon_xml_path):
-                continue
             try:
-                # split lines for stripping
-                xml_lines = open(addon_xml_path, "r").read().splitlines()
+                # create path
+                addon_xml_path = os.path.join(addon_folder, "addon.xml")
+                # skip path if it has no addon.xml
+                if not os.path.isfile(addon_xml_path):
+                    continue
+
+                with open(addon_xml_path, "r") as addon_xml_fp:
+                    addonid, version = self._get_addon_xml_tag(addon_xml_fp, "id", "version")
+
+                    # if the current identifier (addon ID and version) was already present, replace it
+                    # otherwise add it
+                    if (addonid in addon_xml_files and
+                            version in addon_xml_files[addonid]):
+                        addon_xml_files[addonid][version] = addon_xml_fp.read().splitlines()
+                    else:
+                        addon_xml_files[addonid] = {version: addon_xml_fp.read().splitlines()}
+            except Exception:
+                # poorly formatted addon.xml
+                print("Excluding %s for %s" % (addon_xml_path, e))
+
+        # iterate over all found addon.xml files
+        for addon_versions in addon_xml_files.values():
+            for addon_xml_lines in addon_versions.values():
                 # new addon
-                addon_xml = ""
+                addon_xml_data = ""
                 # loop thru cleaning each line
-                for line in xml_lines:
+                for line in addon_xml_lines:
                     # skip encoding format line
                     if (line.find("<?xml") >= 0):
                         continue
                     # add line
-                    addon_xml += line.rstrip() + "\n"
+                    addon_xml_data += line.rstrip() + "\n"
                 # we succeeded so add to our final addons.xml text
-                addons_xml += addon_xml.rstrip() + "\n\n"
-            except Exception as e:
-                # missing or poorly formatted addon.xml
-                print("Excluding %s for %s" % (addon_xml_path, e))
+                addons_xml_data += addon_xml_data.rstrip() + "\n\n"
 
         # clean and add closing tag
-        addons_xml = addons_xml.strip() + "\n</addons>\n"
+        addons_xml_data = addons_xml_data.strip() + "\n</addons>\n"
 
         addons_xml_path = os.path.join(self.config.out_dir, "addons.xml")
         # save file
-        self._save_file(addons_xml, file_path=addons_xml_path)
+        self._save_file(addons_xml_data, file_path=addons_xml_path)
         # create addons.xml.md5
         self._create_md5_file(addons_xml_path)
 
