@@ -69,7 +69,7 @@ class Generator:
             url=self.config.url)
 
         # save file
-        self._save_file(repo_xml, file=os.path.join(self.repo_addon_path, "addon.xml"))
+        self._save_file(repo_xml, file_path=os.path.join(self.repo_addon_path, "addon.xml"))
 
     def _generate_addon_zip_files(self):
         # addon list
@@ -180,7 +180,7 @@ class Generator:
 
         addons_xml_path = os.path.join(self.config.out_dir, "addons.xml")
         # save file
-        self._save_file(addons_xml, file=addons_xml_path)
+        self._save_file(addons_xml, file_path=addons_xml_path)
         # create addons.xml.md5
         self._create_md5_file(addons_xml_path)
 
@@ -201,13 +201,13 @@ class Generator:
             # oops
             print(f"An error occurred creating {os.path.basename(file_path)}.md5 file!\n{e}")
 
-    def _save_file(self, data, file):
+    def _save_file(self, data, file_path):
         try:
             # write data to the file
-            open(file, "w").write(data)
+            open(file_path, "w").write(data)
         except Exception as e:
             # oops
-            print("An error occurred saving %s file!\n%s" % (file, e))
+            print("An error occurred saving %s file!\n%s" % (file_path, e))
 
     def _listdir_full(self, directory):
         return [os.path.join(directory, f) for f in os.listdir(directory)]
