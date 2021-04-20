@@ -14,6 +14,7 @@
 from argparse import ArgumentParser
 import fnmatch
 import hashlib
+from io import IOBase
 import json
 import os
 import re
@@ -86,10 +87,7 @@ class Generator:
                 continue
             try:
                 # extract version and addon ID from the addon.xml
-                addon_xml = minidom.parse(addon_xml_path)
-                for parent in addon_xml.getElementsByTagName("addon"):
-                    version = parent.getAttribute("version")
-                    addonid = parent.getAttribute("id")
+                version, addonid = self._get_addon_xml_tag(addon_xml_path, "version", "id")
 
                 # zip the addon
                 self._generate_zip_file(addon_folder, version, addonid)
@@ -211,6 +209,26 @@ class Generator:
         except Exception as e:
             # oops
             print("An error occurred saving %s file!\n%s" % (file_path, e))
+
+    def _get_addon_xml_tag(self, addon_xml_file_or_fp, *tags):
+        # extract version and addon ID from the addon.xml
+        parsed_xml = minidom.parse(addon_xml_file_or_fp)
+
+        # reset file descriptor if it is one
+        if isinstance(addon_xml_file_or_fp, IOBase):
+            addon_xml_file_or_fp.seek(0)
+
+        # the 'addon' tag is the parent
+        for parent in parsed_xml.getElementsByTagName("addon"):
+            if len(tags) == 1:
+                # only return the single attribute
+                return parent.getAttribute(tags[0])
+            elif len(tags) > 1:
+                # return multiple tags
+                result = []
+                for tag in tags:
+                    result.append(parent.getAttribute(tag))
+                return result
 
     def _listdir_full(self, directory):
         return [os.path.join(directory, f) for f in os.listdir(directory)]
