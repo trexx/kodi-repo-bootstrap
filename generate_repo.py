@@ -105,14 +105,14 @@ class Generator:
             os.makedirs(addon_out_path)
 
         # the path of the zip file
-        zip_file = os.path.join(addon_out_path, addon_id + "-" + version + ".zip")
+        zip_file_path = os.path.join(addon_out_path, addon_id + "-" + version + ".zip")
 
         try:
             # the root path of the addon
             root = os.path.join(self.config.in_dir, folder_name)
 
             # create the zip file
-            zip_content = zipfile.ZipFile(zip_file, 'w', compression=zipfile.ZIP_DEFLATED)
+            zip_content = zipfile.ZipFile(zip_file_path, 'w', compression=zipfile.ZIP_DEFLATED)
             # fill it
             for current_root, dirs, files in os.walk(root):
                 # ignore .svn and .git directories
@@ -129,7 +129,7 @@ class Generator:
                 for file in files:
                     # ignore dotfiles
                     if not file.startswith('.') and \
-                            file != os.path.basename(zip_file):
+                            file != os.path.basename(zip_file_path):
                         rel_path = os.path.join(addon_id,
                                                 os.path.relpath(os.path.join(current_root, file),
                                                                 os.path.join(root)))
@@ -138,6 +138,9 @@ class Generator:
             zip_content.close()
         except Exception as e:
             print(e)
+        else:
+            # create md5 file for the zip file
+            self._create_md5_file(zip_file_path)
 
     def _generate_repo_addons_file(self):
         print("Generating addons.xml file")
