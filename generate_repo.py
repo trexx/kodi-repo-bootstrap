@@ -51,7 +51,6 @@ class Generator:
         # generate files
         self._write_repo_addon_xml()
         self._generate_repo_addons_file()
-        self._generate_repo_addons_md5_file()
         self._generate_addon_zip_files()
 
     def _write_repo_addon_xml(self):
@@ -179,22 +178,28 @@ class Generator:
         # clean and add closing tag
         addons_xml = addons_xml.strip() + "\n</addons>\n"
 
+        addons_xml_path = os.path.join(self.config.out_dir, "addons.xml")
         # save file
-        self._save_file(addons_xml, file=os.path.join(self.config.out_dir, "addons.xml"))
+        self._save_file(addons_xml, file=addons_xml_path)
+        # create addons.xml.md5
+        self._create_md5_file(addons_xml_path)
 
-    def _generate_repo_addons_md5_file(self):
-        print("Generating addons.xml.md5 file")
+    def _create_md5_file(self, file_path):
+        print(f"Generating {os.path.basename(file_path)}.md5 file")
+
+        hash_md5 = hashlib.md5()
 
         try:
             # create a new md5 hash
-            with open(os.path.join(self.config.out_dir, "addons.xml"), 'r') as f:
-                m = hashlib.md5(f.read().encode('utf-8')).hexdigest()
+            with open(file_path, 'rb') as f:
+                for chunk in iter(lambda: f.read(4096), b""):
+                    hash_md5.update(chunk)
 
             # save file
-            self._save_file(m, file=os.path.join(self.config.out_dir, "addons.xml.md5"))
+            self._save_file(hash_md5.hexdigest(), file_path=file_path + ".md5")
         except Exception as e:
             # oops
-            print("An error occurred creating addons.xml.md5 file!\n%s" % e)
+            print(f"An error occurred creating {os.path.basename(file_path)}.md5 file!\n{e}")
 
     def _save_file(self, data, file):
         try:
