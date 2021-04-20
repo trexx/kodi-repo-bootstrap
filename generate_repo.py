@@ -29,7 +29,7 @@ import zipfile
 # global variables
 __PROGRAM_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 CONFIG_FILE = os.path.join(__PROGRAM_DIR, 'config.json')
-TEMPLATE_FILE = os.path.join(__PROGRAM_DIR, 'template.xml')
+TEMPLATE_FILE = os.path.join(__PROGRAM_DIR, 'repo_addon.xml.tpl')
 
 
 class Generator:
