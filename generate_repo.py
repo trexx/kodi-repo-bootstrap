@@ -83,8 +83,6 @@ class Generator:
                 print(e)
 
     def __generate_zip_file(self, addon_directory, version, addon_id):
-        print("Generate zip file for " + addon_id + " " + version)
-
         # create output addon directory
         addon_out_path = os.path.join(self.config.out_dir, addon_id)
         if not os.path.exists(addon_out_path):
@@ -92,6 +90,13 @@ class Generator:
 
         # the path of the zip file
         zip_file_path = os.path.join(addon_out_path, addon_id + "-" + version + ".zip")
+
+        # skip if the zip file is already present
+        if os.path.isfile(zip_file_path):
+            print("Skipped creating " + os.path.basename(zip_file_path) + " file, because it exists already")
+            return
+        else:
+            print("Generate zip file for " + addon_id + " " + version)
 
         try:
             # create the zip file
@@ -164,11 +169,11 @@ class Generator:
                 with open(addon_xml_path, "r") as addon_xml_fp:
                     addonid, version = self.__get_addon_xml_tag(addon_xml_fp, "id", "version")
 
-                    # if the current identifier (addon ID and version) was already present, replace it
+                    # if the current identifier (addon ID and version) was already present, skip it
                     # otherwise add it
                     if (addonid in addon_xml_files and
                             version in addon_xml_files[addonid]):
-                        addon_xml_files[addonid][version] = addon_xml_fp.read().splitlines()
+                        continue
                     else:
                         addon_xml_files[addonid] = {version: addon_xml_fp.read().splitlines()}
             except Exception as e:
