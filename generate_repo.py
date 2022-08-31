@@ -51,11 +51,11 @@ class Generator:
             os.makedirs(self.repo_addon_path)
 
         # generate files
-        self._write_repo_addon_xml()
-        self._generate_repo_addons_file()
-        self._generate_addon_zip_files()
+        self.write_repo_addon_xml()
+        self.generate_repo_addons_file()
+        self.generate_addon_zip_files()
 
-    def _write_repo_addon_xml(self):
+    def write_repo_addon_xml(self):
         print("Create repository addon.xml")
 
         with open(TEMPLATE_FILE, "r") as f:
@@ -71,11 +71,11 @@ class Generator:
             url=self.config.url)
 
         # save file
-        self._save_file(repo_xml, file_path=os.path.join(self.repo_addon_path, "addon.xml"))
+        self.__save_file(repo_xml, file_path=os.path.join(self.repo_addon_path, "addon.xml"))
 
-    def _generate_addon_zip_files(self):
+    def generate_addon_zip_files(self):
         # addon list
-        addon_folders = self._listdir_full(self.config.in_dir)
+        addon_folders = self.__listdir_full(self.config.in_dir)
         # add the repo addon
         addon_folders.append(self.repo_addon_path)
 
@@ -88,14 +88,14 @@ class Generator:
                 continue
             try:
                 # extract version and addon ID from the addon.xml
-                version, addonid = self._get_addon_xml_tag(addon_xml_path, "version", "id")
+                version, addonid = self.__get_addon_xml_tag(addon_xml_path, "version", "id")
 
                 # zip the addon
-                self._generate_zip_file(addon_folder, version, addonid)
+                self.__generate_zip_file(addon_folder, version, addonid)
             except Exception as e:
                 print(e)
 
-    def _generate_zip_file(self, addon_folder, version, addon_id):
+    def __generate_zip_file(self, addon_folder, version, addon_id):
         print("Generate zip file for " + addon_id + " " + version)
 
         # create output addon directory
@@ -135,13 +135,13 @@ class Generator:
             print(e)
         else:
             # create md5 file for the zip file
-            self._create_md5_file(zip_file_path)
+            self.__create_md5_file(zip_file_path)
 
-    def _generate_repo_addons_file(self):
+    def generate_repo_addons_file(self):
         print("Generating addons.xml file")
 
         # addon list
-        addon_folders = self._listdir_full(self.config.in_dir)
+        addon_folders = self.__listdir_full(self.config.in_dir)
         # add the repo addon
         addon_folders.append(self.repo_addon_path)
 
@@ -165,7 +165,7 @@ class Generator:
                     with zip_fp.open(compressed_addon_xml_path, 'r') as compressed_addon_xml_fp:
                         # save the content of the existing addon.xml based on the addon ID and version
                         addon_xml_content = TextIOWrapper(compressed_addon_xml_fp)
-                        addonid, version = self._get_addon_xml_tag(addon_xml_content, "id", "version")
+                        addonid, version = self.__get_addon_xml_tag(addon_xml_content, "id", "version")
 
                         if addonid in addon_xml_files:
                             addon_xml_files[addonid][version] = addon_xml_content.read().splitlines()
@@ -184,7 +184,7 @@ class Generator:
                     continue
 
                 with open(addon_xml_path, "r") as addon_xml_fp:
-                    addonid, version = self._get_addon_xml_tag(addon_xml_fp, "id", "version")
+                    addonid, version = self.__get_addon_xml_tag(addon_xml_fp, "id", "version")
 
                     # if the current identifier (addon ID and version) was already present, replace it
                     # otherwise add it
@@ -217,11 +217,11 @@ class Generator:
 
         addons_xml_path = os.path.join(self.config.out_dir, "addons.xml")
         # save file
-        self._save_file(addons_xml_data, file_path=addons_xml_path)
+        self.__save_file(addons_xml_data, file_path=addons_xml_path)
         # create addons.xml.md5
-        self._create_md5_file(addons_xml_path)
+        self.__create_md5_file(addons_xml_path)
 
-    def _create_md5_file(self, file_path):
+    def __create_md5_file(self, file_path):
         print(f"Generating {os.path.basename(file_path)}.md5 file")
 
         hash_md5 = hashlib.md5()
@@ -233,12 +233,12 @@ class Generator:
                     hash_md5.update(chunk)
 
             # save file
-            self._save_file(hash_md5.hexdigest(), file_path=file_path + ".md5")
+            self.__save_file(hash_md5.hexdigest(), file_path=file_path + ".md5")
         except Exception as e:
             # oops
             print(f"An error occurred creating {os.path.basename(file_path)}.md5 file!\n{e}")
 
-    def _save_file(self, data, file_path):
+    def __save_file(self, data, file_path):
         try:
             # write data to the file
             open(file_path, "w").write(data)
@@ -246,7 +246,7 @@ class Generator:
             # oops
             print("An error occurred saving %s file!\n%s" % (file_path, e))
 
-    def _get_addon_xml_tag(self, addon_xml_file_or_fp, *tags):
+    def __get_addon_xml_tag(self, addon_xml_file_or_fp, *tags):
         # extract version and addon ID from the addon.xml
         parsed_xml = minidom.parse(addon_xml_file_or_fp)
 
@@ -266,7 +266,7 @@ class Generator:
                     result.append(parent.getAttribute(tag))
                 return result
 
-    def _listdir_full(self, directory):
+    def __listdir_full(self, directory):
         return [os.path.join(directory, f) for f in os.listdir(directory)]
 
 
@@ -312,10 +312,10 @@ class AssetCopier:
 class Config:
     def __init__(self):
         # create the cli argument parser
-        parser = self._init_parser()
+        parser = self.__init_parser()
 
         # get the settings from the config file
-        config = self._read_config_file(CONFIG_FILE)
+        config = self.__read_config_file(CONFIG_FILE)
 
         # merge config file and cli arguments
         args = parser.parse_args()
@@ -323,16 +323,16 @@ class Config:
         config.update({k: v for k, v in argparse_dict.items() if v})
 
         # check the config parameter
-        self._validate_config(config)
+        self.__validate_config(config)
 
         # add the config attributes to this instance
         for key, value in config.items():
             setattr(self, key, value)
 
         # save the config to file
-        self._write_config_file(config, CONFIG_FILE)
+        self.__write_config_file(config, CONFIG_FILE)
 
-    def _init_parser(self):
+    def __init_parser(self):
         parser = ArgumentParser(description="Create a Kodi repository")
         parser.add_argument('-n', '--name', metavar='Repository name', type=str, dest='repo_name',
                             help="The name of the repository")
@@ -357,7 +357,7 @@ class Config:
 
         return parser
 
-    def _validate_config(self, config):
+    def __validate_config(self, config):
         # check for missing and wrong settings
         missing_args = []
         wrong_args = []
@@ -405,7 +405,7 @@ class Config:
                   file=sys.stderr)
             sys.exit(1)
 
-    def _read_config_file(self, file_path):
+    def __read_config_file(self, file_path):
         # check if a config file exists
         if not os.path.isfile(file_path):
             # create a new one if no config file exists
@@ -422,7 +422,7 @@ class Config:
         # return the content of the config file as dict
         return config
 
-    def _write_config_file(self, config, file_path):
+    def __write_config_file(self, config, file_path):
         # write the config to file
         with open(file_path, 'w') as f:
             json.dump(config, f, sort_keys=True, indent=4)
