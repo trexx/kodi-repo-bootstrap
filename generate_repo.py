@@ -425,7 +425,7 @@ class Config:
     def _write_config_file(self, config, file_path):
         # write the config to file
         with open(file_path, 'w') as f:
-                json.dump(config, f)
+            json.dump(config, f, sort_keys=True, indent=4)
 
 
 if __name__ == "__main__":
