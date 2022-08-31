@@ -4,10 +4,12 @@
         <import addon="xbmc.addon" version="12.0.0"/>
     </requires>
     <extension point="xbmc.addon.repository" name="{name}">
-        <info compressed="false">{url}/addons.xml</info>
-        <checksum>{url}/addons.xml.md5</checksum>
-        <datadir zip="true">{url}/</datadir>
-        <hashes>false</hashes>
+        <dir>
+            <info compressed="false">{url}/addons.xml</info>
+            <checksum>{url}/addons.xml.md5</checksum>
+            <datadir zip="true">{url}/</datadir>
+            <hashes>false</hashes>
+        </dir>
     </extension>
     <extension point="xbmc.addon.metadata">
         <summary>{summary}</summary>
