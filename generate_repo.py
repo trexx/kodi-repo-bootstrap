@@ -171,9 +171,9 @@ class Generator:
                         addon_xml_files[addonid][version] = addon_xml_fp.read().splitlines()
                     else:
                         addon_xml_files[addonid] = {version: addon_xml_fp.read().splitlines()}
-            except Exception:
+            except Exception as e:
                 # poorly formatted addon.xml
-                print("Excluding %s for %s" % (addon_xml_path, e))
+                print("Excluding %s; error in addon.xml (%s)" % (addon_xml_path, e))
 
         # iterate over all found addon.xml files
         for addon_versions in addon_xml_files.values():
