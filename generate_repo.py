@@ -169,11 +169,8 @@ class Generator:
                 with open(addon_xml_path, "r") as addon_xml_fp:
                     addonid, version = self.__get_addon_xml_tag(addon_xml_fp, "id", "version")
 
-                    # if the current identifier (addon ID and version) was already present, skip it
-                    # otherwise add it
-                    if (addonid in addon_xml_files and
-                            version in addon_xml_files[addonid]):
-                        continue
+                    if addonid in addon_xml_files:
+                        addon_xml_files[addonid][version] = addon_xml_fp.read().splitlines()
                     else:
                         addon_xml_files[addonid] = {version: addon_xml_fp.read().splitlines()}
             except Exception as e:
