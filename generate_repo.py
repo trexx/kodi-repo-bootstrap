@@ -12,7 +12,6 @@
 """
 
 from argparse import ArgumentParser
-import fnmatch
 import glob
 import hashlib
 from io import TextIOWrapper, IOBase
@@ -23,6 +22,7 @@ import shutil
 import sys
 from urllib.parse import urlparse
 from xml.dom import minidom
+from xml.dom.minidom import Node
 import zipfile
 
 
@@ -274,12 +274,10 @@ class Generator:
         return [os.path.join(directory, f) for f in os.listdir(directory)]
 
 
-class Copier:
+class AssetCopier:
     def __init__(self, config):
         self.config = config
-        self._copy_additional_files()
 
-    def _copy_additional_files(self):
         # iterate over the addons
         addon_folders = os.listdir(self.config.in_dir)
         for addon_folder in addon_folders:
@@ -287,36 +285,32 @@ class Copier:
             addon_xml_path = os.path.join(addon_folder, "addon.xml")
             if not os.path.isfile(addon_xml_path):
                 continue
+
             addon_xml = minidom.parse(addon_xml_path)
             for parent in addon_xml.getElementsByTagName("addon"):
                 addon_id = parent.getAttribute("id")
                 addon_out_path = os.path.join(self.config.out_dir, addon_id)
+                # a trailing slash is required by shutil.copy2 to preserve the file name at the destination
                 addon_out_path = os.path.join(addon_out_path, '')
 
-                try:
-                    # copy addon.xml
-                    shutil.copy2(addon_xml_path, addon_out_path)
+                # copy addon.xml
+                shutil.copy2(addon_xml_path, addon_out_path)
 
-                    # copy changelog.txt
-                    changelog_txt_path = self._find_files("changelog*.txt", addon_folder)
-                    for changelog in changelog_txt_path:
-                        shutil.copy2(os.path.join(addon_folder, changelog), addon_out_path)
+                for extension in parent.getElementsByTagName("extension"):
+                    if extension.getAttribute("point") != "xbmc.addon.metadata":
+                        continue
 
-                    # copy icon.png
-                    icon_png_path = self._find_files("icon*.png", addon_folder)
-                    for icon in icon_png_path:
-                        shutil.copy2(os.path.join(addon_folder, icon), addon_out_path)
+                    # find the 'assets' tag
+                    for assets in extension.getElementsByTagName("assets"):
+                        # iterate over the assets
+                        for asset in assets.childNodes:
+                            # only process element nodes (<icon>, <fanart>, ...)
+                            if asset.nodeType == Node.ELEMENT_NODE:
+                                # the first child (Node.TEXT_NODE) of an asset element contains the path
+                                shutil.copy2(os.path.join(addon_folder, asset.firstChild.nodeValue), addon_out_path)
 
-                    # copy fanart.jpg
-                    fanart_jpg_path = self._find_files("fanart*.jpg", addon_folder)
-                    for fanart in fanart_jpg_path:
-                        shutil.copy2(os.path.join(addon_folder, fanart), addon_out_path)
-                except IOError:
-                    pass
-
-    def _find_files(self, which, where='.'):
-        rule = re.compile(fnmatch.translate(which), re.IGNORECASE)
-        return [name for name in os.listdir(where) if rule.match(name)]
+                        # can exit here, because there is only one 'assets' tag
+                        break
 
 
 class Config:
@@ -443,5 +437,5 @@ if __name__ == "__main__":
     config = Config()
 
     Generator(config)
-    Copier(config)
+    AssetCopier(config)
     print("Finished updating addons xml & md5 files, zipping addons and copying additional files")
