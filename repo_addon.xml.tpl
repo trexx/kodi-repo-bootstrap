@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="{addonid}" name="{name}" version="{version}" provider-name="{author}">
+<addon id="{addonid}" name="{reponame}" version="{addonversion}" provider-name="{addonauthor}">
     <requires>
         <import addon="xbmc.addon" version="12.0.0"/>
     </requires>
-    <extension point="xbmc.addon.repository" name="{name}">
+    <extension point="xbmc.addon.repository" name="{reponame}">
         <dir>
-            <info compressed="false">{url}/addons.xml</info>
-            <checksum>{url}/addons.xml.md5</checksum>
-            <datadir zip="true">{url}/</datadir>
+            <info compressed="false">{repourl}/addons.xml</info>
+            <checksum>{repourl}/addons.xml.md5</checksum>
+            <datadir zip="true">{repourl}/</datadir>
             <hashes>false</hashes>
         </dir>
     </extension>
     <extension point="xbmc.addon.metadata">
-        <summary>{summary}</summary>
-        <description>{description}</description>
+        <summary>{addonsummary}</summary>
+        <description>{addondescription}</description>
         <platform>all</platform>
     </extension>
 </addon>

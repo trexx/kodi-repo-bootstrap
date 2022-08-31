@@ -58,13 +58,13 @@ class Generator:
             template_xml = f.read()
 
         repo_xml = template_xml.format(
-            author=self.config.addon_author,
-            description=self.config.addon_description,
+            addonauthor=self.config.addon_author,
+            addondescription=self.config.addon_description,
             addonid=self.config.addon_id,
-            summary=self.config.addon_summary,
-            version=self.config.addon_version,
-            name=self.config.repo_name,
-            url=self.config.repo_url)
+            addonsummary=self.config.addon_summary,
+            addonversion=self.config.addon_version,
+            reponame=self.config.repo_name,
+            repourl=self.config.repo_url)
 
         # save file
         self.__save_file(repo_xml, file_path=os.path.join(self.repo_addon_path, "addon.xml"))
