@@ -50,11 +50,6 @@ class Generator:
         if not os.path.exists(self.repo_addon_path):
             os.makedirs(self.repo_addon_path)
 
-        # generate files
-        self.write_repo_addon_xml()
-        self.generate_repo_addons_file()
-        self.generate_addon_zip_files()
-
     def write_repo_addon_xml(self):
         print("Create repository addon.xml")
 
@@ -274,6 +269,7 @@ class AssetCopier:
     def __init__(self, config):
         self.config = config
 
+    def copy_assets(self):
         # iterate over the addons
         addon_folders = os.listdir(self.config.in_dir)
         for addon_folder in addon_folders:
@@ -432,6 +428,14 @@ if __name__ == "__main__":
     # load the config
     config = Config()
 
-    Generator(config)
-    AssetCopier(config)
+    # generate files
+    g = Generator(config)
+    g.write_repo_addon_xml()
+    g.generate_repo_addons_file()
+    g.generate_addon_zip_files()
+
+    # copy assets
+    ac = AssetCopier(config)
+    ac.copy_assets()
+
     print("Finished updating addons xml & md5 files, zipping addons and copying additional files")
