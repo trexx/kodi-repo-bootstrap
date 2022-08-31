@@ -95,7 +95,7 @@ class Generator:
             except Exception as e:
                 print(e)
 
-    def _generate_zip_file(self, folder_name, version, addon_id):
+    def _generate_zip_file(self, addon_folder, version, addon_id):
         print("Generate zip file for " + addon_id + " " + version)
 
         # create output addon directory
@@ -107,13 +107,10 @@ class Generator:
         zip_file_path = os.path.join(addon_out_path, addon_id + "-" + version + ".zip")
 
         try:
-            # the root path of the addon
-            root = os.path.join(self.config.in_dir, folder_name)
-
             # create the zip file
             zip_content = zipfile.ZipFile(zip_file_path, 'w', compression=zipfile.ZIP_DEFLATED)
             # fill it
-            for current_root, dirs, files in os.walk(root):
+            for current_root, dirs, files in os.walk(addon_folder):
                 # ignore .svn and .git directories
                 if '.svn' in dirs:
                     dirs.remove('.svn')
@@ -121,7 +118,7 @@ class Generator:
                     dirs.remove('.git')
 
                 # write the current root folder
-                rel_path = os.path.join(addon_id, os.path.relpath(os.path.join(current_root), os.path.join(root)))
+                rel_path = os.path.join(addon_id, os.path.relpath(current_root, addon_folder))
                 zip_content.write(os.path.join(current_root), rel_path)
 
                 # write the files in the current root folder
@@ -130,8 +127,7 @@ class Generator:
                     if not file.startswith('.') and \
                             file != os.path.basename(zip_file_path):
                         rel_path = os.path.join(addon_id,
-                                                os.path.relpath(os.path.join(current_root, file),
-                                                                os.path.join(root)))
+                                                os.path.relpath(os.path.join(current_root, file), addon_folder))
                         zip_content.write(os.path.join(current_root, file), rel_path)
 
             zip_content.close()
