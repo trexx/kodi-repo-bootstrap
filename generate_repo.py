@@ -71,7 +71,7 @@ class Generator:
 
     def generate_addon_zip_files(self):
         # loop thrugh all addon directories and add each addons addon.xml file
-        for addon_direcotry in itertools.chain(self.config.get_addon_directories(), [self.repo_addon_path]):
+        for addon_direcotry in self.config.get_addon_directories():
             addon_xml_path = os.path.join(addon_direcotry, "addon.xml")
             try:
                 # extract version and addon ID from the addon.xml
@@ -82,7 +82,11 @@ class Generator:
             except Exception as e:
                 print(e)
 
-    def __generate_zip_file(self, addon_directory, version, addon_id):
+        # special case repository addon: only add addon.xml to zip file
+        self.__generate_zip_file(self.repo_addon_path, self.config.addon_version, self.config.addon_id,
+                                 only_addonxml=True)
+
+    def __generate_zip_file(self, addon_directory, version, addon_id, only_addonxml=False):
         # create output addon directory
         addon_out_path = os.path.join(self.config.out_dir, addon_id)
         if not os.path.exists(addon_out_path):
@@ -111,16 +115,24 @@ class Generator:
 
                 # write the current root folder
                 rel_path = os.path.join(addon_id, os.path.relpath(current_root, addon_directory))
-                zip_content.write(os.path.join(current_root), rel_path)
+                zip_content.write(current_root, rel_path)
 
                 # write the files in the current root folder
                 for file in files:
                     # ignore dotfiles
                     if not file.startswith('.') and \
                             file != os.path.basename(zip_file_path):
+                        # skip any other file if only the addon.xml file should be added
+                        if only_addonxml and os.path.basename(file) != "addon.xml":
+                            continue
+
                         rel_path = os.path.join(addon_id,
                                                 os.path.relpath(os.path.join(current_root, file), addon_directory))
                         zip_content.write(os.path.join(current_root, file), rel_path)
+
+                # since the addon.xml file is in the root directory we don't need to add any sub-directories
+                if only_addonxml:
+                    break
 
             zip_content.close()
         except Exception as e:
