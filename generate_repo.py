@@ -146,7 +146,7 @@ class Generator:
         addon_folders.append(self.repo_addon_path)
 
         # addons.xml opening tags
-        addons_xml_data = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<addons>\n"
+        addons_xml_data = '<?xml version="1.0" encoding="UTF-8"?>\n<addons>\n'
 
         # store the content of all addon.xml files
         addon_xml_files = {}
