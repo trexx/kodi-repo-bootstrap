@@ -15,6 +15,7 @@ from argparse import ArgumentParser
 import glob
 import hashlib
 from io import TextIOWrapper, IOBase
+import itertools
 import json
 import os
 import re
@@ -69,28 +70,19 @@ class Generator:
         self.__save_file(repo_xml, file_path=os.path.join(self.repo_addon_path, "addon.xml"))
 
     def generate_addon_zip_files(self):
-        # addon list
-        addon_folders = self.__listdir_full(self.config.in_dir)
-        # add the repo addon
-        addon_folders.append(self.repo_addon_path)
-
-        # loop thru and add each addons addon.xml file
-        for addon_folder in addon_folders:
-            # create path
-            addon_xml_path = os.path.join(addon_folder, "addon.xml")
-            # skip path if it has no addon.xml
-            if not os.path.isfile(addon_xml_path):
-                continue
+        # loop thrugh all addon directories and add each addons addon.xml file
+        for addon_direcotry in itertools.chain(self.config.get_addon_directories(), [self.repo_addon_path]):
+            addon_xml_path = os.path.join(addon_direcotry, "addon.xml")
             try:
                 # extract version and addon ID from the addon.xml
                 version, addonid = self.__get_addon_xml_tag(addon_xml_path, "version", "id")
 
                 # zip the addon
-                self.__generate_zip_file(addon_folder, version, addonid)
+                self.__generate_zip_file(addon_direcotry, version, addonid)
             except Exception as e:
                 print(e)
 
-    def __generate_zip_file(self, addon_folder, version, addon_id):
+    def __generate_zip_file(self, addon_directory, version, addon_id):
         print("Generate zip file for " + addon_id + " " + version)
 
         # create output addon directory
@@ -105,7 +97,7 @@ class Generator:
             # create the zip file
             zip_content = zipfile.ZipFile(zip_file_path, 'w', compression=zipfile.ZIP_DEFLATED)
             # fill it
-            for current_root, dirs, files in os.walk(addon_folder):
+            for current_root, dirs, files in os.walk(addon_directory):
                 # ignore .svn and .git directories
                 if '.svn' in dirs:
                     dirs.remove('.svn')
@@ -113,7 +105,7 @@ class Generator:
                     dirs.remove('.git')
 
                 # write the current root folder
-                rel_path = os.path.join(addon_id, os.path.relpath(current_root, addon_folder))
+                rel_path = os.path.join(addon_id, os.path.relpath(current_root, addon_directory))
                 zip_content.write(os.path.join(current_root), rel_path)
 
                 # write the files in the current root folder
@@ -122,7 +114,7 @@ class Generator:
                     if not file.startswith('.') and \
                             file != os.path.basename(zip_file_path):
                         rel_path = os.path.join(addon_id,
-                                                os.path.relpath(os.path.join(current_root, file), addon_folder))
+                                                os.path.relpath(os.path.join(current_root, file), addon_directory))
                         zip_content.write(os.path.join(current_root, file), rel_path)
 
             zip_content.close()
@@ -134,11 +126,6 @@ class Generator:
 
     def generate_repo_addons_file(self):
         print("Generating addons.xml file")
-
-        # addon list
-        addon_folders = self.__listdir_full(self.config.in_dir)
-        # add the repo addon
-        addon_folders.append(self.repo_addon_path)
 
         # addons.xml opening tags
         addons_xml_data = '<?xml version="1.0" encoding="UTF-8"?>\n<addons>\n'
@@ -169,14 +156,10 @@ class Generator:
             except Exception as e:
                 pass
 
-        # loop through the addon directory and add each addons addon.xml file
-        for addon_folder in addon_folders:
+        # loop through the addon directories and add each addons addon.xml file
+        for addon_directory in itertools.chain(self.config.get_addon_directories(), [self.repo_addon_path]):
             try:
-                # create path
-                addon_xml_path = os.path.join(addon_folder, "addon.xml")
-                # skip path if it has no addon.xml
-                if not os.path.isfile(addon_xml_path):
-                    continue
+                addon_xml_path = os.path.join(addon_directory, "addon.xml")
 
                 with open(addon_xml_path, "r") as addon_xml_fp:
                     addonid, version = self.__get_addon_xml_tag(addon_xml_fp, "id", "version")
@@ -261,24 +244,17 @@ class Generator:
                     result.append(parent.getAttribute(tag))
                 return result
 
-    def __listdir_full(self, directory):
-        return [os.path.join(directory, f) for f in os.listdir(directory)]
-
 
 class AssetCopier:
     def __init__(self, config):
         self.config = config
 
     def copy_assets(self):
-        # iterate over the addons
-        addon_folders = os.listdir(self.config.in_dir)
-        for addon_folder in addon_folders:
-            addon_folder = os.path.join(self.config.in_dir, addon_folder)
-            addon_xml_path = os.path.join(addon_folder, "addon.xml")
-            if not os.path.isfile(addon_xml_path):
-                continue
-
+        # iterate over the addon directories
+        for addon_directory in self.config.get_addon_directories():
+            addon_xml_path = os.path.join(addon_directory, "addon.xml")
             addon_xml = minidom.parse(addon_xml_path)
+
             for parent in addon_xml.getElementsByTagName("addon"):
                 addon_id = parent.getAttribute("id")
                 addon_out_path = os.path.join(self.config.out_dir, addon_id)
@@ -299,7 +275,7 @@ class AssetCopier:
                             # only process element nodes (<icon>, <fanart>, ...)
                             if asset.nodeType == Node.ELEMENT_NODE:
                                 # the first child (Node.TEXT_NODE) of an asset element contains the path
-                                shutil.copy2(os.path.join(addon_folder, asset.firstChild.nodeValue), addon_out_path)
+                                shutil.copy2(os.path.join(addon_directory, asset.firstChild.nodeValue), addon_out_path)
 
                         # can exit here, because there is only one 'assets' tag
                         break
@@ -422,6 +398,20 @@ class Config:
         # write the config to file
         with open(file_path, 'w') as f:
             json.dump(config, f, sort_keys=True, indent=4)
+
+    def get_addon_directories(self):
+        for f in os.listdir(self.in_dir):
+            full_path = os.path.join(self.in_dir, f)
+
+            # only directories are valid
+            if not os.path.isdir(full_path):
+                continue
+
+            # an addon.xml file must exist
+            if not os.path.isfile(os.path.join(full_path, "addon.xml")):
+                continue
+
+            yield full_path
 
 
 if __name__ == "__main__":
