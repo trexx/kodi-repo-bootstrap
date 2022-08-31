@@ -58,13 +58,13 @@ class Generator:
             template_xml = f.read()
 
         repo_xml = template_xml.format(
+            author=self.config.addon_author,
+            description=self.config.addon_description,
             addonid=self.config.addon_id,
+            summary=self.config.addon_summary,
+            version=self.config.addon_version,
             name=self.config.repo_name,
-            version=self.config.version,
-            author=self.config.author,
-            summary=self.config.summary,
-            description=self.config.description,
-            url=self.config.url)
+            url=self.config.repo_url)
 
         # save file
         self.__save_file(repo_xml, file_path=os.path.join(self.repo_addon_path, "addon.xml"))
@@ -315,16 +315,16 @@ class Config:
                             help="The name of the repository")
         parser.add_argument('-r', '--id', metavar='Repository addon ID', type=str, dest='addon_id',
                             help="The ID of the repository addon (must start with 'repository.')")
-        parser.add_argument('-v', '--version', metavar='Version', type=str, dest='version',
+        parser.add_argument('-v', '--version', metavar='Version', type=str, dest='addon_version',
                             help="The version of the repository addon")
-        parser.add_argument('-a', '--author', metavar='Author', type=str, dest='author',
+        parser.add_argument('-a', '--author', metavar='Author', type=str, dest='addon_author',
                             help="The author of the repository")
-        parser.add_argument('-s', '--summary', metavar='Summary', type=str, dest='summary',
+        parser.add_argument('-s', '--summary', metavar='Summary', type=str, dest='addon_summary',
                             help="A short summary of this repository")
-        parser.add_argument('-d', '--description', metavar='Description', type=str, dest='description',
+        parser.add_argument('-d', '--description', metavar='Description', type=str, dest='addon_description',
                             help=("The description can be longer. Using [CR] you can create a newline. ",
                                   "The use of other markup is not advised."))
-        parser.add_argument('-u', '--url', metavar='Remote repository URL', type=str, dest='url',
+        parser.add_argument('-u', '--url', metavar='Remote repository URL', type=str, dest='repo_url',
                             help=("The later URL of the repository main directory, e.g. ",
                                   "https://raw.githubusercontent.com/Your-Github-Username/repository-link/"))
         parser.add_argument('-i', '--input-dir', metavar='Input directory', type=str, dest='in_dir',
@@ -344,23 +344,23 @@ class Config:
             missing_args.append("--id")
         elif not config['addon_id'].startswith('repository.'):
             wrong_args.append("--id: The addon ID must start with 'repository.'")
-        if not config['version']:
+        if not config['addon_version']:
             missing_args.append("--version")
-        if not config['author']:
+        if not config['addon_author']:
             missing_args.append("--author")
-        if not config['summary']:
+        if not config['addon_summary']:
             missing_args.append("--summary")
-        if not config['description']:
+        if not config['addon_description']:
             missing_args.append("--description")
-        if not config['url']:
+        if not config['repo_url']:
             missing_args.append("--url")
         else:
             # remove trailing slash if it's there
-            if config['url'].endswith('/'):
-                config['url'] = config['url'][:-1]
+            if config['repo_url'].endswith('/'):
+                config['repo_url'] = config['repo_url'][:-1]
 
             # check for a valid URL
-            parsed_url = urlparse(config['url'])
+            parsed_url = urlparse(config['repo_url'])
             if not parsed_url.scheme or \
                     not parsed_url.netloc:
                 wrong_args.append("--url: a valid URL must be provided")
