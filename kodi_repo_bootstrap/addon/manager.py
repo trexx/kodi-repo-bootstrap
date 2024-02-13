@@ -37,13 +37,13 @@ class AddonManager:
             for cur_addon in self.__glob_addon(self.__addons_dir,
                                                # valid directory structure for the new addons:
                                                # addons_dir/
-                                               #     |- plugin.addon.id.zip
+                                               #     |- plugin.addon.id-versionX.zip
                                                #     - and / or -
                                                #     |- plugin.addon.id/
                                                #     |    |- addon.xml
                                                #     |    |- ...
                                                #     |    - and / or -
-                                               #     |    |- plugin.addon.id.zip
+                                               #     |    |- plugin.addon.id-versionX.zip
                                                "*.zip", "*/addon.xml", "*/*.zip"):
                 # check if the addon is already known
                 if cur_addon.id in self.__addons_latest_version:
@@ -65,7 +65,7 @@ class AddonManager:
                                  # valid directory structure for the existing addons (already in the repo):
                                  # repo_dir/
                                  #    |- plugin.addon.id/
-                                 #    |    |- plugin.addon.id.zip
+                                 #    |    |- plugin.addon.id-versionX.zip
                                  "*/*.zip")
 
     def get_all_addons(self) -> Iterator[Addon]:
