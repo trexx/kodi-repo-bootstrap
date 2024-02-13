@@ -23,8 +23,10 @@ class SemanticVersion:
 
             if v_match_dict["minor"] is not None:
                 self.__minor = v_match_dict["minor"]
-            if v_match_dict["patch"] is not None:
-                self.__patch = v_match_dict["patch"]
+
+                # patch version makes only sense if there's a minor version
+                if v_match_dict["patch"] is not None:
+                    self.__patch = v_match_dict["patch"]
 
             # special case: match group "other" is always an empty string
             if v_match_dict["other"]:
