@@ -41,21 +41,21 @@ class Config:
         wrong_args: List[str] = []
 
         if not self.repo_name:
-            missing_args.append(CLIArgsMeta.repo_name_arg[1])
+            missing_args.append(CLIArgsMeta.REPO_NAME_ARG[1])
         if not self.repo_addon_id:
-            missing_args.append(CLIArgsMeta.repo_addon_id_arg[1])
+            missing_args.append(CLIArgsMeta.REPO_ADDON_ID_ARG[1])
         elif not self.repo_addon_id.startswith("repository."):
-            wrong_args.append(f"{CLIArgsMeta.repo_addon_id_arg[1]}: The addon ID must start with 'repository.'")
+            wrong_args.append(f"{CLIArgsMeta.REPO_ADDON_ID_ARG[1]}: The addon ID must start with 'repository.'")
         if not self.repo_addon_version:
-            missing_args.append(CLIArgsMeta.repo_addon_version_arg[1])
+            missing_args.append(CLIArgsMeta.REPO_ADDON_VERSION_ARG[1])
         if not self.repo_addon_author:
-            missing_args.append(CLIArgsMeta.repo_addon_author_arg[1])
+            missing_args.append(CLIArgsMeta.REPO_ADDON_AUTOR_ARG[1])
         if not self.repo_addon_summary:
-            missing_args.append(CLIArgsMeta.repo_addon_summary_arg[1])
+            missing_args.append(CLIArgsMeta.REPO_ADDON_SUMMARY_ARG[1])
         if not self.repo_addon_description:
-            missing_args.append(CLIArgsMeta.repo_addon_description_arg[1])
+            missing_args.append(CLIArgsMeta.REPO_ADDON_DESCRIPTION_ARG[1])
         if not self.repo_url:
-            missing_args.append(CLIArgsMeta.repo_url_arg[1])
+            missing_args.append(CLIArgsMeta.REPO_URL_ARG[1])
         else:
             # remove trailing slash if it's there
             if self.repo_url.endswith('/'):
@@ -65,14 +65,14 @@ class Config:
             parsed_url: ParseResult = urlparse(self.repo_url)
             if not parsed_url.scheme or \
                     not parsed_url.netloc:
-                wrong_args.append(f"{CLIArgsMeta.repo_url_arg[1]}: a valid URL must be provided")
+                wrong_args.append(f"{CLIArgsMeta.REPO_URL_ARG[1]}: a valid URL must be provided")
         if not self.addons_dir:
-            missing_args.append(CLIArgsMeta.addons_dir_arg[1])
+            missing_args.append(CLIArgsMeta.ADDONS_DIR_ARG[1])
         else:
             if not self.addons_dir.is_dir():
-                wrong_args.append(f"{CLIArgsMeta.addons_dir_arg[1]}: a valid directory must be provided")
+                wrong_args.append(f"{CLIArgsMeta.ADDONS_DIR_ARG[1]}: a valid directory must be provided")
         if not self.repo_dir:
-            missing_args.append(CLIArgsMeta.repo_dir_arg[1])
+            missing_args.append(CLIArgsMeta.REPO_DIR_ARG[1])
         # if the repo directory does not exist, it will be created later
 
         if missing_args:
