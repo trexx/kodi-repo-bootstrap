@@ -5,6 +5,8 @@ from typing import Any, Dict, Final, Tuple, final
 
 @final
 class CLIArgsMeta:
+    CONFIG_FILE_ARG: Final[str] = "config_file"
+
     REPO_NAME_ARG: Final[Tuple[str, str]] = ("-n", "--name")
     REPO_ADDON_ID_ARG: Final[Tuple[str, str]] = ("-r", "--id")
     REPO_ADDON_VERSION_ARG: Final[Tuple[str, str]] = ("-v", "--version")
@@ -47,7 +49,7 @@ class CLIArgs:
         parser.add_argument(*CLIArgsMeta.REPO_DIR_ARG, metavar='Repository directory', type=Path, dest='repo_dir',
                             help="The output directory of the new Kodi repository")
 
-        parser.add_argument("config_file", metavar="CONFIG_FILE", type=Path,
+        parser.add_argument(CLIArgsMeta.CONFIG_FILE_ARG, metavar=CLIArgsMeta.CONFIG_FILE_ARG.upper(), type=Path,
                             help="The configuration file")
 
         return parser

@@ -3,7 +3,7 @@ import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 from urllib.parse import ParseResult, urlparse
 
 from kodi_repo_bootstrap.cli.args import CLIArgs, CLIArgsMeta
@@ -12,9 +12,6 @@ from kodi_repo_bootstrap.fs.file import DEFAULT_FILE_ENCODING
 
 @dataclass
 class Config:
-    # required args
-    config_file: Path
-
     repo_name: str
     repo_addon_id: str
     repo_addon_version: str
@@ -26,8 +23,6 @@ class Config:
     repo_dir: Path
 
     def __post_init__(self) -> None:
-        self.config_file = Path(self.config_file).resolve()
-
         if self.addons_dir is not None:
             self.addons_dir = Path(self.addons_dir).resolve(strict=True)
         if self.repo_dir is not None:
@@ -86,11 +81,10 @@ class Config:
 
     def as_dict(self) -> Dict[str, Optional[str]]:
         return {
-            field.name:
-                str(getattr(self, field.name))
-                    if getattr(self, field.name) is not None
-                    else None
-                for field in dataclasses.fields(self)
+            field.name: str(getattr(self, field.name))
+                            if getattr(self, field.name) is not None
+                        else None
+            for field in dataclasses.fields(self)
         }
 
 
@@ -99,8 +93,10 @@ class ConfigFile:
         # get the config from the CLI arguments
         config_dict: Dict[str, Any] = CLIArgs().get_args()
 
+        self.__config_file: Path = cast(Path, config_dict.pop(CLIArgsMeta.CONFIG_FILE_ARG)).resolve()
+
         # get the settings from the config file
-        config_dict_from_file: Dict[str, Any] = self.__read_config_file(config_dict["config_file"])
+        config_dict_from_file: Dict[str, Any] = self.__read_config_file(self.__config_file)
 
         # merge config file and cli arguments
         config_dict_from_file.update({k: v for k, v in config_dict.items() if v})
@@ -132,7 +128,7 @@ class ConfigFile:
 
     def __write_config_file(self, config: Config) -> None:
         # write the config to file
-        with open(config.config_file, 'w', encoding=DEFAULT_FILE_ENCODING) as f:
+        with open(self.__config_file, 'w', encoding=DEFAULT_FILE_ENCODING) as f:
             json.dump(config.as_dict(), f, sort_keys=True, indent=4)
 
     def get_config(self) -> Config:
