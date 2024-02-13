@@ -33,8 +33,9 @@ jobs:
         - name: Build package
           run: |
             poetry build
-        # on a regular push publish the package to test PyPI repo
+        # on a regular push (not pull request) publish the package to test PyPI repo
         - name: Publish package distributions to TestPyPI
+          if: github.event_name != 'pull_request'
           uses: pypa/gh-action-pypi-publish@release/v1
           with:
             repository-url: https://test.pypi.org/legacy/
