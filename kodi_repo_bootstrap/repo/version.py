@@ -19,14 +19,14 @@ class SemanticVersion:
         if v_match is not None:
             v_match_dict: Dict[str, Any] = v_match.groupdict()
 
-            self.__major = v_match_dict["major"]
+            self.__major = int(v_match_dict["major"])
 
             if v_match_dict["minor"] is not None:
-                self.__minor = v_match_dict["minor"]
+                self.__minor = int(v_match_dict["minor"])
 
                 # patch version makes only sense if there's a minor version
                 if v_match_dict["patch"] is not None:
-                    self.__patch = v_match_dict["patch"]
+                    self.__patch = int(v_match_dict["patch"])
 
             # special case: match group "other" is always an empty string
             if v_match_dict["other"]:
@@ -51,47 +51,53 @@ class SemanticVersion:
     def __eq__(self, other_ver: "SemanticVersion") -> bool:
         return str(self) == str(other_ver)
 
-    def __lt__(self, other_ver: "SemanticVersion") -> bool:
-        if self.__major < other_ver.major:
-            return True
+    def __gt__(self, other_ver: "SemanticVersion") -> bool:
+        if self.__major != other_ver.major:
+            return self.__major > other_ver.major
 
         if self.__minor is None and other_ver.minor is None:
             pass
         elif self.__minor is None and other_ver.minor is not None:
-            return True
+            return False
         elif self.__minor is not None and other_ver.minor is None:
-            pass
-        elif self.__minor is not None and other_ver.minor is not None:
-            return self.__minor < other_ver.minor
+            return True
+        elif (
+            self.__minor is not None and other_ver.minor is not None
+            and self.__minor != other_ver.minor
+        ):
+            return self.__minor > other_ver.minor
 
         if self.__patch is None and other_ver.patch is None:
             pass
         elif self.__patch is None and other_ver.patch is not None:
-            return True
+            return False
         elif self.__patch is not None and other_ver.patch is None:
-            pass
-        elif self.__patch is not None and other_ver.patch is not None:
-            return self.__patch < other_ver.patch
+            return True
+        elif (
+            self.__patch is not None and other_ver.patch is not None
+            and self.__patch != other_ver.patch
+        ):
+            return self.__patch > other_ver.patch
 
         if self.__other is None and other_ver.other is None:
             pass
         elif self.__other is None and other_ver.other is not None:
-            return True
+            return False
         elif self.__other is not None and other_ver.other is None:
-            pass
+            return True
         elif self.__other is not None and other_ver.other is not None:
-            return sorted((self.__other, other_ver.other))[0] == other_ver.other
+            return sorted((self.__other, other_ver.other))[0] == self.__other
 
         return False
 
-    def __le__(self, other_ver: "SemanticVersion") -> bool:
-        return self.__eq__(other_ver) or self.__lt__(other_ver)
-
-    def __gt__(self, other_ver: "SemanticVersion") -> bool:
-        return not self.__le__(other_ver)
-
     def __ge__(self, other_ver: "SemanticVersion") -> bool:
         return self.__eq__(other_ver) or self.__gt__(other_ver)
+
+    def __lt__(self, other_ver: "SemanticVersion") -> bool:
+        return not self.__ge__(other_ver)
+
+    def __le__(self, other_ver: "SemanticVersion") -> bool:
+        return self.__eq__(other_ver) or self.__lt__(other_ver)
 
     def __str__(self) -> str:
         ver_str: str = f"{self.__major}"
