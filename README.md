@@ -1,5 +1,5 @@
 # [Kodi](https://kodi.tv/) Repository Bootstrapper
-Many thanks to @Twilight0 and all the others who contributed code for this project before.
+Many thanks to [@Twilight0](https://github.com/Twilight0) and all the others who contributed code for this project before.
 
 
 ## Installation
