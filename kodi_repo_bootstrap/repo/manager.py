@@ -82,8 +82,8 @@ class RepoManager:
         # get the addon ZIP and their corresponding md5 files
         # (for excluding them later from being deleted)
         previous_addon_zip_md5_files: Iterator[str] = chain.from_iterable(
-            chain((a[1].addon_path.name, f"{a[1].addon_path.name}.md5"))
-                for a in self.__addons_not_in_repo
+            chain((a.addon_path.name, f"{a.addon_path.name}.md5"))
+                for a in self.__addons_manager.get_addons_in_repo()
         )
 
         # iterate over the addon directories
