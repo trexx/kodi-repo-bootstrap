@@ -21,14 +21,14 @@ class RepoManager:
         self.__repo_addon: RepoAddon = RepoAddon(config)
 
         # create addon directories for output in repo_dir
-        self.__addons_not_in_repo: List[Tuple[Path, Addon]] = []
+        self.__addons_not_in_repo_with_out_path: List[Tuple[Addon, Path]] = []
         addon: Addon
         for addon in self.__addons_manager.get_addons_not_in_repo():
             addon_out_path: Path = self.__config.repo_dir / addon.id
             addon_out_path.mkdir(exist_ok=True)
 
             # save for later use
-            self.__addons_not_in_repo.append((addon_out_path, addon))
+            self.__addons_not_in_repo_with_out_path.append((addon, addon_out_path))
 
     def create_repo_addons_xml(self) -> None:
         print("Generating addons.xml file")
@@ -87,9 +87,9 @@ class RepoManager:
         )
 
         # iterate over the addon directories
-        addon_out_path: Path
         addon: Addon
-        for addon_out_path, addon in self.__addons_not_in_repo:
+        addon_out_path: Path
+        for addon, addon_out_path in self.__addons_not_in_repo_with_out_path:
             # first clear the destination directory
             # only keep any previous addon ZIP and their corresponding md5 files
             path_to_delete: Path
@@ -106,7 +106,7 @@ class RepoManager:
         self.__repo_addon.create_zip_file()
 
         # create the zip files for all other addons
-        addon_out_path: Path
         addon: Addon
-        for addon_out_path, addon in self.__addons_not_in_repo:
+        addon_out_path: Path
+        for addon, addon_out_path in self.__addons_not_in_repo_with_out_path:
             addon.create_zip_file(dest_dir=addon_out_path)
