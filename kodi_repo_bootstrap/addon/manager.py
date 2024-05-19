@@ -58,7 +58,7 @@ class AddonManager:
                     # add the current addon to the dict, because it's not known
                     self.__addons_latest_version[cur_addon.id] = cur_addon
 
-        return (addon for addon in self.__addons_latest_version.values())
+        return iter(self.__addons_latest_version.values())
 
     def get_addons_in_repo(self) -> Iterator[Addon]:
         return self.__glob_addon(self.__repo_dir,
