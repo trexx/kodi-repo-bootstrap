@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kodi-repo-bootstrap"
-version = "2.0.0-post.18"
+version = "2.1.0"
 description = "Bootstrap GIT repo for setting up a Kodi repository"
 authors = ["mammo0 <marc.ammon@hotmail.de>"]
 homepage = "https://github.com/mammo0/kodi-repo-bootstrap"
@@ -20,7 +20,7 @@ kodi-repo-bootstrap = "kodi_repo_bootstrap.main:run"
 
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.13"
 importlib-resources = "^6.4.5"
 
 
