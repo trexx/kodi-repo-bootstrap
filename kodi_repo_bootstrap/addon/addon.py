@@ -1,7 +1,7 @@
 import re
 import shutil
 import zipfile
-from importlib import resources
+import importlib_resources
 from io import BufferedReader, BufferedWriter, BytesIO, TextIOWrapper
 from pathlib import Path
 from typing import IO, Final, List, Optional, cast
@@ -197,7 +197,7 @@ class RepoAddon(Addon):
         print("Create repository addon.xml")
 
         repo_addon_xml_template: Path
-        with resources.path(package="kodi_repo_bootstrap", resource=".") as repo_addon_xml_template:
+        with importlib_resources.path("kodi_repo_bootstrap") as repo_addon_xml_template:
             repo_addon_xml_template = (repo_addon_xml_template / "res" / "repo_addon.xml.tpl").resolve()
 
         template_xml: str
